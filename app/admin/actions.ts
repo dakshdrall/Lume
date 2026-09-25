@@ -23,7 +23,9 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
   const supabase = getAuthClient();
   if (!supabase) return { ok: false, message: "Supabase isn't configured." };
 
-  const origin = headers().get("origin") || SITE_URL;
+  // Prefer the configured site URL so links always land on a domain allowlisted in Supabase
+  // (a Vercel preview URL that isn't allowlisted would silently fall back to the Site URL).
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ? SITE_URL : headers().get("origin") || SITE_URL;
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: `${origin}/auth/callback`, shouldCreateUser: true },

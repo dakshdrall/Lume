@@ -2,19 +2,18 @@ import type { Metadata } from "next";
 import { Wordmark } from "@/components/Wordmark";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { Dashboard, type Signup } from "@/components/admin/Dashboard";
-import { getAuthClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { isAllowedAdmin } from "@/lib/admin";
+import { getAdminSession } from "@/lib/admin";
 import { signOut } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Admin · lume", robots: { index: false, follow: false } };
 
 export default async function AdminPage({ searchParams }: { searchParams: { error?: string } }) {
-  const auth = getAuthClient();
+  const session = await getAdminSession();
   const db = getAdminClient();
 
-  if (!auth || !db) {
+  if (session.status === "unconfigured" || !db) {
     return (
       <Shell>
         <p className="text-muted">
@@ -24,10 +23,7 @@ export default async function AdminPage({ searchParams }: { searchParams: { erro
     );
   }
 
-  const { data } = await auth.auth.getUser();
-  const email = data.user?.email ?? null;
-
-  if (!email) {
+  if (session.status === "signed-out") {
     return (
       <Shell>
         <AdminLogin linkError={searchParams.error === "link"} />
@@ -35,11 +31,11 @@ export default async function AdminPage({ searchParams }: { searchParams: { erro
     );
   }
 
-  if (!isAllowedAdmin(email)) {
+  if (session.status === "forbidden") {
     return (
       <Shell>
         <p className="text-muted">
-          <strong className="text-ink">{email}</strong> isn&apos;t on the admin list.
+          <strong className="text-ink">{session.email}</strong> isn&apos;t on the admin list.
         </p>
         <form action={signOut} className="mt-6">
           <button className="btn-ghost">Sign out</button>
@@ -55,7 +51,7 @@ export default async function AdminPage({ searchParams }: { searchParams: { erro
     .limit(10000);
 
   return (
-    <Shell wide email={email}>
+    <Shell wide email={session.email}>
       {error ? (
         <p role="alert" className="text-muted">
           Couldn&apos;t load signups: {error.message}

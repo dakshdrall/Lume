@@ -39,8 +39,9 @@ cp .env.example .env.local
 1. Create a project at [supabase.com](https://supabase.com).
 2. Open **SQL Editor**, paste the SQL below (also in [`supabase/schema.sql`](supabase/schema.sql)) and run it.
 3. From **Project Settings → API**, copy the URL, the `anon` key and the `service_role` key into `.env.local`.
-4. Under **Authentication → URL Configuration**, set **Site URL** to your domain and add
-   `http://localhost:3000/auth/callback` and `https://YOUR-DOMAIN/auth/callback` to **Redirect URLs**.
+4. Under **Authentication → URL Configuration**:
+   - **Site URL:** `https://YOUR-DOMAIN` (e.g. `https://lume.vercel.app`)
+   - **Redirect URLs:** `https://YOUR-DOMAIN/auth/callback` and `http://localhost:3000/auth/callback`
 5. Optional but recommended: under **Authentication → Providers → Email**, keep "Confirm email" on, and set up
    custom SMTP (the built-in sender is heavily rate-limited).
 
@@ -180,9 +181,22 @@ npm run lint && npm run typecheck
 
 ## Admin dashboard
 
-Visit `/admin`, enter an allowlisted email and click the magic link. Non-allowlisted emails get the same
-"link is on its way" message but no email, so admin addresses can't be discovered. Every admin action
-re-checks the allowlist on the server.
+Admins come **only** from the `ADMIN_EMAILS` environment variable (comma-separated, case-insensitive,
+trimmed). Never put admin emails in source. Set it in `.env.local` for local dev and in Vercel's
+environment variables for production.
+
+Flow: `/admin` → enter email → magic link → `/auth/callback` (sets the session cookie) → `/admin`.
+Non-allowlisted emails get the same "link is on its way" message but no email, so admin addresses can't be
+discovered. The page and every admin action re-check the allowlist on the server, and require a
+confirmed email. Keep **Authentication → Providers → Email → Confirm email** turned on.
+
+By default the link must be opened in the same browser that requested it (PKCE). To make links work when
+opened on another device or in the Gmail app, change the **Magic Link** and **Confirm signup** email
+templates' link to:
+
+```html
+<a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email">Sign in to lume admin</a>
+```
 
 - **Delete** handles DPDP deletion requests: it removes the row permanently (a confirmation step prevents misclicks).
 - **Export CSV** exports the currently filtered rows. Cells are escaped against spreadsheet formula injection.

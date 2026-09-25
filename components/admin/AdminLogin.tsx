@@ -21,7 +21,7 @@ export function AdminLogin({ linkError }: { linkError?: boolean }) {
       <p className="mt-2 text-sm text-muted">We&apos;ll email you a magic link. Only allowlisted emails can sign in.</p>
       {linkError && (
         <p role="alert" className="mt-4 rounded-2xl bg-accent/10 px-4 py-3 text-sm text-ink">
-          That link was invalid or expired. Request a new one.
+          That link was invalid or expired. Request a new one and open it in this same browser.
         </p>
       )}
       <form action={action} className="mt-6 flex flex-col gap-4">
